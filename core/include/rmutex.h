@@ -21,6 +21,8 @@
 #ifndef RMUTEX_H_
 #define RMUTEX_H_
 
+#include <stdatomic.h>
+
 #include "mutex.h"
 #include "kernel_types.h"
 
@@ -35,29 +37,32 @@ typedef struct rmutex_t {
     /* fields are managed by mutex functions, don't touch */
     /**
      * @brief The mutex used for locking. **Must never be changed by
-     *          the user.**
+     *        the user.**
      * @internal
      */
     mutex_t mutex;
 
     /**
-     * @brief   refcount - number of locks owned by the thread owner
+     * @brief   Number of locks owned by the thread owner
      * @internal
      */
     uint16_t refcount;
 
     /**
-     * @brief   owner thread of the mutex
+     * @brief   Owner thread of the mutex.
+     * @details Owner is written by the mutex holder, and read
+     *          concurrently to ensure consistency,
+     *          atomic_int_least16_t is used. Note @ref kernel_pid_t is an int16
      * @internal
      */
-    kernel_pid_t owner;
+    atomic_int_least16_t owner;
 } rmutex_t;
 
 /**
  * @brief Static initializer for rmutex_t.
  * @details This initializer is preferable to rmutex_init().
  */
-#define RMUTEX_INIT { MUTEX_INIT, 0, KERNEL_PID_UNDEF }
+#define RMUTEX_INIT { MUTEX_INIT, 0, ATOMIC_VAR_INIT(KERNEL_PID_UNDEF) }
 
 /**
  * @brief Initializes a recursive mutex object.
