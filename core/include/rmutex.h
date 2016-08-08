@@ -7,9 +7,8 @@
  */
 
 /**
- * @defgroup    core_sync Synchronization
+ * @ingroup     core_sync Synchronization
  * @brief       Recursive Mutex for thread synchronization
- * @ingroup     core
  * @{
  *
  * @file
@@ -94,7 +93,7 @@ void rmutex_lock(rmutex_t *rmutex);
 /**
  * @brief Unlocks the recursive mutex.
  *
- * @param[in] mutex Recursive mutex object to unlock, must not be NULL.
+ * @param[in] rmutex Recursive mutex object to unlock, must not be NULL.
  */
 void rmutex_unlock(rmutex_t *rmutex);
 

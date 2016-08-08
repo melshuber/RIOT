@@ -9,7 +9,6 @@
 /**
  * @defgroup    core_sync Synchronization
  * @brief       Recursive Mutex for thread synchronization
- * @ingroup     core
  * @{
  *
  * @file
