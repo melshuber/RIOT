@@ -35,10 +35,10 @@
 void rmutex_lock(rmutex_t *rmutex)
 {
     kernel_pid_t owner;
+
     /* try to lock the mutex */
     DEBUG("rmutex %" PRIi16" : trylock\n", thread_getpid());
-    switch (mutex_trylock(&rmutex->mutex)) {
-    case 0:
+    if (mutex_trylock(&rmutex->mutex) == 0) {
         DEBUG("rmutex %" PRIi16" : mutex already held\n", thread_getpid());
         /* mutex is already held
          *
@@ -82,32 +82,29 @@ void rmutex_lock(rmutex_t *rmutex)
         else {
             assert(rmutex->refcount>0);
         }
-
-        /* fall through */
-    case 1:
-
-        DEBUG("rmutex %" PRIi16" : I am now holding the mutex\n", thread_getpid());
-
-        /* We are holding the recursive mutex */
-
-        DEBUG("rmutex %" PRIi16" : settting the owner\n", thread_getpid());
-
-        /* ensure that owner is written only once */
-        *((volatile kernel_pid_t *)(&rmutex->owner)) = thread_getpid();
-
-        DEBUG("rmutex %" PRIi16" : increasing refs\n", thread_getpid());
-
-        /* increase the refcount */
-        rmutex->refcount++;
     }
+
+    DEBUG("rmutex %" PRIi16" : I am now holding the mutex\n", thread_getpid());
+
+    /* We are holding the recursive mutex */
+
+    DEBUG("rmutex %" PRIi16" : settting the owner\n", thread_getpid());
+
+    /* ensure that owner is written only once */
+    *((volatile kernel_pid_t *)(&rmutex->owner)) = thread_getpid();
+
+    DEBUG("rmutex %" PRIi16" : increasing refs\n", thread_getpid());
+
+    /* increase the refcount */
+    rmutex->refcount++;
 }
 
 int rmutex_trylock(rmutex_t *rmutex)
 {
     kernel_pid_t owner;
+
     /* try to lock the mutex */
-    switch (mutex_trylock(&rmutex->mutex)) {
-    case 0:
+    if (mutex_trylock(&rmutex->mutex) == 0) {
         /* ensure that owner is read only once */
         owner = *((volatile uint16_t *)(&rmutex->owner));
 
@@ -120,18 +117,15 @@ int rmutex_trylock(rmutex_t *rmutex)
         else {
             assert(rmutex->refcount>0);
         }
-
-        /* fall through */
-    case 1:
-        /* we are holding the recursive mutex */
-
-        /* ensure that owner is written only once */
-        *((volatile uint16_t *)(&rmutex->owner)) = thread_getpid();
-
-        /* increase the refcount */
-        rmutex->refcount++;
     }
 
+    /* we are holding the recursive mutex */
+
+    /* ensure that owner is written only once */
+    *((volatile uint16_t *)(&rmutex->owner)) = thread_getpid();
+
+    /* increase the refcount */
+    rmutex->refcount++;
     return 1;
 }
 
