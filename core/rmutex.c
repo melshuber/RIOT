@@ -140,7 +140,7 @@ void rmutex_unlock(rmutex_t *rmutex)
     rmutex->refcount--;
 
     /* check if we still hold the mutex */
-    if (rmutex->refcount==0) {
+    if (rmutex->refcount == 0) {
         /* if not release the mutex */
 
         DEBUG("rmutex %" PRIi16" : resetting owner\n", thread_getpid());
