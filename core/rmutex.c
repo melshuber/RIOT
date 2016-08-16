@@ -131,7 +131,7 @@ int rmutex_trylock(rmutex_t *rmutex)
 
 void rmutex_unlock(rmutex_t *rmutex)
 {
-    assert(rmutex->owner == thread_getpid());
+    assert(atomic_load_explicit(&rmutex->owner,memory_order_relaxed) == thread_getpid());
     assert(rmutex->refcount > 0);
 
     DEBUG("rmutex %" PRIi16" : decrementing refs refs\n", thread_getpid());
