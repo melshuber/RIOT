@@ -16,6 +16,7 @@
  *
  * @author      Kaspar Schleiser <kaspar@schleiser.de>
  * @author      Joakim Nohlgård <joakim.nohlgard@eistec.se>
+ * @author      Martin Elshuber <martin.elshuber@theobroma-systems.com>
  */
 
 #ifndef ATOMIC_H_
@@ -132,6 +133,44 @@ static inline int atomic_set_to_zero(atomic_int_t *var)
     } while (!atomic_cas(var, old, 0));
 
     return 1;
+}
+
+/**
+ * @brief Clear a bit in an atomic variable.
+ *
+ * @param[inout]  var   Pointer to a atomic variable.
+ * @param[in]     bit   Bit number to clear
+ *
+ * @return The value of *val* before the decrement.
+ */
+static inline int atomic_clr_bit(atomic_int_t *var, int bit)
+{
+    int old;
+
+    do {
+        old = var->value;
+    } while (!atomic_cas(var, old, old & ~(1 << bit)));
+
+    return old;
+}
+
+/**
+ * @brief Set a bit in an atomic variable.
+ *
+ * @param[inout]  var   Pointer to a atomic variable.
+ * @param[in]     bit   Bit number to set
+ *
+ * @return The value of *val* before the decrement.
+ */
+static inline int atomic_set_bit(atomic_int_t *var, int bit)
+{
+    int old;
+
+    do {
+        old = var->value;
+    } while (!atomic_cas(var, old, old | (1 << bit)));
+
+    return old;
 }
 
 /**
