@@ -15,6 +15,7 @@
  *
  * @author      Kaspar Schleiser <kaspar@schleiser.de>
  * @author      René Kijewski <rene.kijewski@fu-berlin.de>
+ * @author      Martin Elshuber <martin.elshuber@theobroma-systems.com>
  *
  * @}
  */
@@ -28,6 +29,7 @@
 #include "thread.h"
 #include "irq.h"
 #include "log.h"
+#include "atomic.h"
 
 #ifdef MODULE_SCHEDSTATISTICS
 #include "xtimer.h"
@@ -51,7 +53,7 @@ volatile thread_t *sched_active_thread;
 volatile kernel_pid_t sched_active_pid = KERNEL_PID_UNDEF;
 
 clist_node_t sched_runqueues[SCHED_PRIO_LEVELS];
-static uint32_t runqueue_bitcache = 0;
+static atomic_int_t runqueue_bitcache = ATOMIC_INIT(0);
 
 #ifdef MODULE_SCHEDSTATISTICS
 static void (*sched_cb) (uint32_t timestamp, uint32_t value) = NULL;
@@ -67,7 +69,7 @@ int sched_run(void)
     /* The bitmask in runqueue_bitcache is never empty,
      * since the threading should not be started before at least the idle thread was started.
      */
-    int nextrq = bitarithm_lsb(runqueue_bitcache);
+    int nextrq = bitarithm_lsb(ATOMIC_VALUE(runqueue_bitcache));
     thread_t *next_thread = container_of(sched_runqueues[nextrq].next->next, thread_t, rq_entry);
 
     DEBUG("sched_run: active thread: %" PRIkernel_pid ", next thread: %" PRIkernel_pid "\n",
@@ -134,7 +136,7 @@ void sched_set_status(thread_t *process, unsigned int status)
             DEBUG("sched_set_status: adding thread %" PRIkernel_pid " to runqueue %" PRIu16 ".\n",
                   process->pid, process->priority);
             clist_rpush(&sched_runqueues[process->priority], &(process->rq_entry));
-            runqueue_bitcache |= 1 << process->priority;
+            atomic_set_bit(&runqueue_bitcache, process->priority);
         }
     }
     else {
@@ -144,7 +146,7 @@ void sched_set_status(thread_t *process, unsigned int status)
             clist_lpop(&sched_runqueues[process->priority]);
 
             if (!sched_runqueues[process->priority].next) {
-                runqueue_bitcache &= ~(1 << process->priority);
+                atomic_clr_bit(&runqueue_bitcache, process->priority);
             }
         }
     }
