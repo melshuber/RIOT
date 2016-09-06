@@ -40,34 +40,45 @@ void rmutex_lock(rmutex_t *rmutex)
     DEBUG("rmutex %" PRIi16" : trylock\n", thread_getpid());
     if (mutex_trylock(&rmutex->mutex) == 0) {
         DEBUG("rmutex %" PRIi16" : mutex already held\n", thread_getpid());
-        /* mutex is already held
+        /* Mutex is already held
          *
-         * Case 1: the current thread holds the mutex
-         *     Invariant 1: holds
-         *     rmutex->owner == thread_getpid()
-         *
-         * Case 2: another thread holds the mutex
-         *     Invariant 1: holds
+         * Case 1: Mutex is not held by me
+         *     Condition 1: holds
          *     rmutex->owner != thread_getpid()
          *
-         * Note for Case 2:
+         * Note for Case 1:
          *
-         *     The foreign thread with PID forgeign_pid might change
-         *     rmutex->owner.
+         *     As a consequence it is necessaray to call
+         *     mutex_lock(). However the read access to owner is not
+         *     locked, and owner can be changed by a thread that is
+         *     holding the lock (e.g.: holder unlocks the mutex, new
+         *     holder aquired the lock). The atomic access strategy
+         *     'relaxed' ensures, that the value of rmutex->owner is read
+         *     consistent.
          *
-         *     a) either from KERNEL_PID_UNDEF to any forgeign PID if
-         *     it is currently executing rmutex_lock or rmutex_trylock
-         *     even if this happens multiple times with different PIDs
-         *     the outcome of the next if statement will not be
-         *     influenced
+         *     It is not necessary to synchronize (make written values
+         *     visible) read/write with other threads, because every
+         *     write by other threads let evaluate Condition 1 to
+         *     false. They all write either KERNEL_PID_UNDEF or the
+         *     pid of the other thread.
          *
-         *     b) either from forgeign_pid to KERNEL_PID_UNDEF if
-         *     it is currently executing rmutex_unlock
+         *     Other threads never set rmutex->owner to the pid of the
+         *     current thread. Hence, it is guaranteed that mutex_lock
+         *     is eventually called.
          *
-         *     but this does not bother the invariant
+         * Case 2: Mutex is held be me (relock)
+         *     Condition 2: holds
+         *     rmutex->owner == thread_getpid()
+         *
+         * Note for Case 1:
+         *
+         *     Because the mutex rmutex->owner is only written be the
+         *     owner (us), rmutex->owner stays constant througout the
+         *     complete call and rmutex->refcount is protected
+         *     (reas/write) by the mutex.
          */
 
-        /* ensure that owner is read only once */
+        /* ensure that owner is atomically, since we need a consistent value */
         owner = atomic_load_explicit( &rmutex->owner, memory_order_relaxed);
         DEBUG("rmutex %" PRIi16" : mutex held by %" PRIi16" \n", thread_getpid(), owner);
 
