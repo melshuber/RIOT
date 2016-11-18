@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Theobroma Systems Design & Consulting GmbH
+ * Copyright (C) 2016 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -7,7 +7,7 @@
  */
 
 /**
- * @defgroup    core_sync Synchronization
+ * @ingroup     core_sync Synchronization
  * @brief       Recursive Mutex for thread synchronization
  * @{
  *
@@ -79,20 +79,18 @@ void rmutex_lock(rmutex_t *rmutex)
          */
 
         /* ensure that owner is read atomically, since I need a consistent value */
-        owner = atomic_load_explicit( &rmutex->owner, memory_order_relaxed);
+        owner = atomic_load_explicit(&rmutex->owner, memory_order_relaxed);
         DEBUG("rmutex %" PRIi16" : mutex held by %" PRIi16" \n", thread_getpid(), owner);
 
         /* Case 1: Mutex is not held by me */
-        if ( owner != thread_getpid() ) {
+        if (owner != thread_getpid()) {
             /* wait for the mutex */
             DEBUG("rmutex %" PRIi16" : locking mutex\n", thread_getpid());
 
             mutex_lock(&rmutex->mutex);
         }
         /* Case 2: Mutex is held be me (relock) */
-        else {
-            assert(rmutex->refcount>0);
-        }
+        /* Note: There is nothing to do for Case 2; refcount is incremented below */
     }
 
     DEBUG("rmutex %" PRIi16" : I am now holding the mutex\n", thread_getpid());
@@ -124,9 +122,7 @@ int rmutex_trylock(rmutex_t *rmutex)
             return 0;
         }
         /* Case 2: Mutex is held be me (relock) */
-        else {
-            assert(rmutex->refcount>0);
-        }
+        /* Note: There is nothing to do for Case 2; refcount is incremented below */
     }
 
     /* I am are holding the recursive mutex */
